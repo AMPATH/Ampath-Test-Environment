@@ -1,0 +1,15 @@
+{
+    "slack": {
+        "clientID": "",
+        "secret": "",
+        "bottoken": "",
+        "groupid": "",
+        "groupname": "",
+        "channelID": "",
+        "channelname": ""
+    },
+    "slackserver": {
+        "host": "The IP or hostname of the server running arms-slack-server",
+        "port": 5000
+    }
+}

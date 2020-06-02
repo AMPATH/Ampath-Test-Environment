@@ -1,0 +1,106 @@
+version: '3'
+services:
+    nginx:
+        restart: always
+        build:
+          dockerfile: Dockerfile
+          context: ./
+        ports:
+          - '80:80'
+        volumes:
+          - ./default.conf:/etc/nginx/conf.d/default.conf
+    ng2amrs:
+        build:
+            dockerfile: Dockerfile
+            context: ./ng2-amrs
+        ports:
+          - '8081:80'
+    etl:
+        image: ampathke/etl-services
+        restart: always
+        ports:
+            - '8002:8002'
+        volumes:
+            - ./etl/conf:/opt/etl/conf
+            - ./etl/uploads:/opt/etl/uploads
+    amrs:
+        image: ampathke/openmrs-spa:latest
+        env_file: ./amrs/main.env
+        volumes:
+            - ./amrs:/root/.OpenMRS
+        restart: unless-stopped
+        depends_on: 
+            - amrs-mysql
+        ports:
+            - 8080:8080
+        healthcheck:
+            test: ["CMD", "curl", "-f", "http://localhost:8080/openmrs/"]
+            timeout: 20s
+    amrs-mysql:
+        restart: "always"
+        container_name: amrs-db
+        image: mysql:5.6
+        command: "mysqld --character-set-server=utf8 --collation-server=utf8_general_ci"
+        environment:
+         MYSQL_DATABASE: ${MYSQL_DB:-amrs}
+         MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-Admin123}
+         MYSQL_USER: ${MYSQL_USER:-openmrs}
+         MYSQL_PASSWORD: ${MYSQL_PASSWORD:-Admin123}
+        healthcheck:
+            test: "exit 0"
+        volumes:
+             - ./db:/var/lib/mysql
+             - ./dbdump:/docker-entrypoint-initdb.d
+        ports:
+             - "3306:3306"
+    formbuilder:
+        image: fatmali/ng2-openmrs-formbuilder:1.2-alpha
+        restart: always
+        ports:
+            - '4200:80'
+    idgen:
+        image: ampathke/amrdidgen
+        ports:
+            - 8016:8016
+        restart: unless-stopped
+        volumes:
+            - ./amrsidgen/config:/opt/amrs-idgen/src/config
+    user_management_app:
+        build:
+            dockerfile: Dockerfile
+            context: ./user-app
+        ports:
+            - '8082:80'
+    slack_service:
+        build:
+            dockerfile: Dockerfile
+            context: ./slack_service
+        ports:
+            - '5000:80'
+        volumes:
+            - ./slack_service/config:/opt/amrs-slackfeedback-server/config
+ 
+    postgres:
+        image: postgres:9.6
+        restart: always
+        environment:
+            - POSTGRES_USER=airflow
+            - POSTGRES_PASSWORD=airflow
+            - POSTGRES_DB=airflow
+    airflow:
+        build:
+            context: ./etl
+        restart: always
+        depends_on:
+            - postgres
+        environment:
+            - LOAD_EX=n
+            - EXECUTOR=Local
+        volumes:
+            - ./etl/airflow/dags:/usr/local/airflow/dags
+            - ./etl/etl-scripts:/usr/local/airflow/etl-scripts:ro
+            - ./etl/airflow/email-templates/:/usr/local/airflow/email-templates
+            - ./etl/airflow/config/:/usr/local/airflow/config
+        ports:
+            - 8092:8080
+        command: webserver
