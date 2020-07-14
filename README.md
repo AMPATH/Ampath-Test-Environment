@@ -7,7 +7,7 @@ To Extract the database, run the following commands in order
 ```sh
 cd dbdump/amrsdb
 
-cat amrs_part* > ../dbdump/amrs.sql
+cat amrspart* > ../amrs.sql
 ```
 
 ## Configuring nginx webserver
