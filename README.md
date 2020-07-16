@@ -11,12 +11,12 @@ cat amrspart* > ../amrs.sql
 ```
 
 ## Configuring nginx webserver
-Change the ip address in `default.conf` to your local address obtained by running the following command:
+Change the ip address in `default.conf`, `amrsidgen/config/config.js`, and `etl/conf/config.json` to your local address obtained by running the following command:
  ```
  ifconfig <interface> | grep inet | grep -v inet6 | awk '{print $2}'
  ```
 ## Running Applications
-```sh 
+```sh
 docker-compose up -d
 ```
 ## Accessing Applications
